@@ -62,14 +62,23 @@ def is_dialogue_box_present(dialogue_box_image):
 #########################################################################################################################
 listOfQuery = []
 
+def parserStr(stri):
+    numberFromStr = ''
+    for i in stri:
+        if(i.isdigit()):
+            numberFromStr += i
+    return numberFromStr
+
 def getDataFromExcel(filePath):
     wb = openpyxl.load_workbook(filePath)
     sheet = wb.active
+    j = int(tagNumber.get())
     for i in range(2,sheet.max_row+1):
+        latestTime.set(f"done {i} out of {sheet.max_row}")
         temp = []
-        for j in range(1,sheet.max_column+1):
-            temp.append(str(sheet.cell(row=i,column=j).value))
+        temp.append(parserStr(str(sheet.cell(row=i,column=j).value)))
         listOfQuery.append(temp)
+
 
 
 def loadExcelFile():
@@ -82,6 +91,11 @@ def loadExcelFile():
      var = "Last Updated: " + str(time.strftime("%H:%M:%S", time.localtime()))
      latestTime.set(var)
      load_button.config(state=ACTIVE,bg=orig_color)
+
+def loadTheFile():
+    t = threading.Thread(target=loadExcelFile)
+    t.start()
+    return
 
 #uiwork     
 #########################################################################################################################
@@ -96,21 +110,21 @@ root.maxsize(550,600)
 root.resizable(width=False, height=False)  
 
 #load button
-load_button = Button(root, text="LOAD EXCEL FILE", command=loadExcelFile)
-load_button.grid(row=0,column=1,padx=0,pady=0)
+load_button = Button(root, text="LOAD EXCEL FILE", command=loadTheFile)
+load_button.grid(row=1,column=1,padx=0,pady=0)
 orig_color = load_button.cget("background")
 
 latestTime = StringVar()
 latestTime.set("Please Load The File")
-modifiedLabel = Label(root,textvariable=latestTime).grid(row=0,column=0,padx=0)
+modifiedLabel = Label(root,textvariable=latestTime).grid(row=1,column=0,padx=0)
 
 
 tagNumberLabel = Label(root, text="tag number column:")
-tagNumberLabel.grid(row=1, column=0, padx=5, pady=5, sticky=W)
+tagNumberLabel.grid(row=0, column=0, padx=5, pady=5, sticky=W)
 
 # Create entry field for username
 tagNumber = Entry(root)
-tagNumber.grid(row=1, column=1, padx=5, pady=5)
+tagNumber.grid(row=0, column=1, padx=5, pady=5)
 
 dateRangeLabel = Label(root, text="date:")
 dateRangeLabel.grid(row=2, column=0, padx=5, pady=5, sticky=W)
@@ -142,8 +156,20 @@ def on_modified1(event):
     with open ("date.txt","w") as f:
         f.write(textOfOutputArea)
 
+def on_modified2(event):
+    textOfOutputArea = successList.get('1.0', 'end')
+    with open ("success.txt","w") as f:
+        f.write(textOfOutputArea)
+
+def on_modified3(event):
+    textOfOutputArea = failureList.get('1.0', 'end')
+    with open ("failure.txt","w") as f:
+        f.write(textOfOutputArea)
+
 tagNumber.bind('<KeyRelease>', on_change1)
 dateRange.bind('<KeyRelease>', on_modified1)
+successList.bind('<KeyRelease>', on_modified2)
+failureList.bind('<KeyRelease>', on_modified3)
 
 def fillOutputArea(outputBox,query,mode):
     if(mode == 0):
@@ -216,11 +242,9 @@ def fillDateList():
 def logic(dictCheck):
     global itr
     j = int(tagNumber.get().strip())
-
-    if(dictCheck.get(listOfQuery[itr][j]) == 1):
+    if(dictCheck.get(listOfQuery[itr][0]) == 1):
         itr+=1
         return
-    
     state.set('RUNNING')
     z = 7
     for i in range(0,z):
@@ -233,7 +257,7 @@ def logic(dictCheck):
     moveTo(699,117)
     click(2,'left')
     pyautogui.typewrite('\b')
-    sendKeys(listOfQuery[itr][j])
+    sendKeys(listOfQuery[itr][0])
 
     moveTo(831,114)
     click(1,'left')
@@ -258,14 +282,9 @@ def logic(dictCheck):
     moveTo(531,376)
     rgb = (8,131,216)
     check = waitUntilFound(rgb,5)
-    
-    dailogBox = "test.png"
-    if(is_dialogue_box_present(dailogBox) == True):
-        with open ("failure.txt","a") as f:
-            f.write(listOfQuery[itr][j]+'\n')
-    else :
-        with open ("success.txt","a") as f:
-            f.write(listOfQuery[itr][j]+'\n')
+
+    with open ("success.txt","a") as f:
+        f.write(listOfQuery[itr][0]+'\n')
 
     if(check == True):
         moveTo(748,435)
@@ -324,3 +343,6 @@ warnLabel.grid(row=5,column=0,padx=0)
 #######################################################################################################################
 #######################################################################################################################
 root.mainloop()
+
+
+ 
