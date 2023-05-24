@@ -2,14 +2,17 @@ import time
 import pyautogui
 import openpyxl
 import threading
+import keyboard
 from datetime import datetime
 from tkinter import *
+from cryptography.fernet import Fernet
 from selenium.webdriver.common.keys import Keys
 from tkinter import filedialog
 
 
 
 #automation
+dateToGo = ''
 ##########################################################################################################
 def sleeping(z):
     time.sleep(int(z.strip()))
@@ -104,9 +107,9 @@ root = Tk()
 root.title("Auto_Survey")
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
-root.minsize(550,600)
-root.geometry("550x600")
-root.maxsize(550,600)
+root.minsize(650,600)
+root.geometry("650x600")
+root.maxsize(650,600)
 root.resizable(width=False, height=False)  
 
 #load button
@@ -119,14 +122,20 @@ latestTime.set("Please Load The File")
 modifiedLabel = Label(root,textvariable=latestTime).grid(row=1,column=0,padx=0)
 
 
+userNameLabel = Label(root, text="enter the auth name:")
+userNameLabel.grid(row=0, column=0)
+
+userName = Entry(root)
+userName.grid(row=0, column=1)
+
+
 tagNumberLabel = Label(root, text="tag number column:")
-tagNumberLabel.grid(row=0, column=0, padx=5, pady=5, sticky=W)
+tagNumberLabel.grid(row=0, column=2, padx=5, pady=5, sticky=W)
 
-# Create entry field for username
 tagNumber = Entry(root)
-tagNumber.grid(row=0, column=1, padx=5, pady=5)
+tagNumber.grid(row=0, column=3, padx=5, pady=5)
 
-dateRangeLabel = Label(root, text="date:")
+dateRangeLabel = Label(root, text="enter ranged base date:")
 dateRangeLabel.grid(row=2, column=0, padx=5, pady=5, sticky=W)
 
 dateRange = Text(root, width=20, height=10)
@@ -145,9 +154,15 @@ successLabel.grid(row=6, column=3, padx=5, pady=5, sticky=W)
 successList = Text(root, width=20, height=15)
 successList.grid(row=7, column=3, columnspan=4, padx=5, pady=0)
 
+
 def on_change1(event):
     textOfOutputArea = tagNumber.get()
     with open ("tagNumber.txt","w") as f:
+        f.write(textOfOutputArea)
+    
+def on_change2(event):
+    textOfOutputArea = userName.get()
+    with open ("userName.txt","w") as f:
         f.write(textOfOutputArea)
 
 
@@ -167,6 +182,7 @@ def on_modified3(event):
         f.write(textOfOutputArea)
 
 tagNumber.bind('<KeyRelease>', on_change1)
+userName.bind('<KeyRelease>', on_change2)
 dateRange.bind('<KeyRelease>', on_modified1)
 successList.bind('<KeyRelease>', on_modified2)
 failureList.bind('<KeyRelease>', on_modified3)
@@ -193,6 +209,10 @@ with open ("failure.txt","r") as f:
 with open ("tagNumber.txt","r") as f:
     for line in f:
         tagNumber.insert(0,line)
+
+with open ("userName.txt","r") as f:
+    for line in f:
+        userName.insert(0,line)
 
     
 
@@ -236,10 +256,29 @@ def fillDateList():
          b = temp.split(':')[1]
          c = temp.split(':')[2]
          for i in range(int(a)-1,int(b)):
-            dateList.append(c)
+            dateList.append([int(a),int(b),c])
+######################################################################
+def decrypt_string(encrypted_string):
+    key = 'ECPHuqGMo6QE2tcLElUX2GBmvOngpzFTbPAO09KMqdo='
+    f = Fernet(key)
+    decrypted = f.decrypt(encrypted_string)
+    return decrypted.decode()
 
-
+authenticator = False
+def checkTheauth():
+    global authenticator
+    with open("allowed_users.txt","r") as f:
+        for line in f:
+            auth = line
+            auth = decrypt_string(str(auth).strip())
+            temp = str(userName.get()).split()
+            temp = temp[0]
+            if(temp in auth):
+                authenticator = True
+                return
+######################################################################
 def logic(dictCheck):
+    global dateToGo
     global itr
     j = int(tagNumber.get().strip())
     if(dictCheck.get(listOfQuery[itr][0]) == 1):
@@ -273,7 +312,7 @@ def logic(dictCheck):
     moveTo(489,350)
     click(1,'left')
 
-    setDate(dateList[itr])
+    setDate(dateToGo)
 
     moveTo(875,462)
     click(1,'left')
@@ -315,13 +354,25 @@ def logic(dictCheck):
 def preLogic():
     fillDateList()
     global itr
+    global dateToGo
     alreadyDone = []
+    checkTheauth()
+    if(authenticator == False):
+        warnLogger.set("not allowed")
+        return
+    warnLogger.set("allowed user")
     alreadyDone = successList.get("1.0",END).split('\n')
     dictCheck = {}
     for i in range(0,len(alreadyDone)):
         dictCheck[alreadyDone[i].strip()] = 1
-    while(itr < len(listOfQuery)):
-        logic(dictCheck)
+    i = 0
+    while(i<len(dateList)):
+        itr = dateList[i][0] - 1
+        dateToGo = dateList[i][2]
+        while(itr < dateList[i][1]):
+            logic(dictCheck)
+        i+=1
+    warnLogger.set("completed")
 
 def startProgram():
     startButton.config(state=DISABLED,bg='LIGHT GREEN')
@@ -341,6 +392,17 @@ warnLabel.grid(row=5,column=0,padx=0)
 
 #mainFunction
 #######################################################################################################################
+def stop_program():
+    root.quit()
+
+def check_hotkey():
+    if keyboard.is_pressed('ctrl') and keyboard.is_pressed('q'):
+        stop_program()
+    else:
+        root.after(100, check_hotkey)
+
+
+root.after(100, check_hotkey)
 #######################################################################################################################
 root.mainloop()
 
