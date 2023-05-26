@@ -249,14 +249,14 @@ def setDate(z):
 dateList = []
 def fillDateList():
      listOfString = dateRange.get("1.0",END).split('\n')
+     print(listOfString)
      for i in range(0,len(listOfString)):
          if(len(listOfString[i]) < 10): continue
          temp = listOfString[i].strip()
          a = temp.split(':')[0]
          b = temp.split(':')[1]
          c = temp.split(':')[2]
-         for i in range(int(a)-1,int(b)):
-            dateList.append([int(a),int(b),c])
+         dateList.append([int(a),int(b),c])
 ######################################################################
 def decrypt_string(encrypted_string):
     key = 'ECPHuqGMo6QE2tcLElUX2GBmvOngpzFTbPAO09KMqdo='
@@ -320,12 +320,12 @@ def logic(dictCheck):
 
     moveTo(531,376)
     rgb = (8,131,216)
-    check = waitUntilFound(rgb,5)
+    check = waitUntilFound(rgb,3)
 
     with open ("success.txt","a") as f:
         f.write(listOfQuery[itr][0]+'\n')
 
-    if(check == True):
+    if(check == True or check == False):
         moveTo(748,435)
         click(1,'left')
             
